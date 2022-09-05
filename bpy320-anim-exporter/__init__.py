@@ -11,14 +11,14 @@ from . import export_model
 bl_info = {
     "name": "JSON: animation data used by OpenKh.Command.AnbMaker",
     "author": "kenjiuno",
-    "version": (0, 1, 0),
+    "version": (0, 2, 0),
     "blender": (3, 2, 0),
     "location": "File > Export > MMD Tools Panel",
     "description": "Animation JSON exporter plugin for OpenKh.Command.AnbMaker.",
     "warning": "This is an experimental module",
     "support": "COMMUNITY",
-    "wiki_url": "",
-    "tracker_url": "",
+    "wiki_url": "https://github.com/kenjiuno/bpy320-anim-exporter",
+    "tracker_url": "https://github.com/kenjiuno/bpy320-anim-exporter/issues",
     "category": "Import-Export"
 }
 

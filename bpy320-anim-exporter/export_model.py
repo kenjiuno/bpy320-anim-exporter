@@ -221,7 +221,7 @@ class AnimExporter:
         }
 
 
-if True:
+if False:
     print("running write_some_data...")
     f = open("C:/A/A.json", 'w', encoding='utf-8')
     f.write(
