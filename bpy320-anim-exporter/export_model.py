@@ -89,9 +89,13 @@ class ActionGroupRef:
 class ActionRef:
     name: str
     groups: Iterable[ActionGroupRef]
+    frameStart: float
+    frameEnd: float
 
     def __init__(self, pair):
         self.name = pair[0]
+        self.frameStart = pair[1].frame_range[0]
+        self.frameEnd = pair[1].frame_range[1]
         self.groups = map(lambda it: ActionGroupRef(it),
                           pair[1].groups.items())
 
@@ -149,10 +153,12 @@ class RootObjectRef:
     name: str
     animationAction: ActionRef
     bones: Iterable[BoneValue]
+    fps: float
 
     def __init__(self, pair):
         self.name = pair[0]
         self.type = pair[1].type
+        self.fps = pair[1].users_scene[0].render.fps
 
         if self.type == 'ARMATURE':
             self.animationAction = ActionRef((
@@ -180,8 +186,11 @@ class AnimExporter:
                 lambda obj: {
                     "type": obj.type,
                     "name": obj.name,
+                    "fps": obj.fps,
                     "animationAction": ({
                         "name": obj.animationAction.name,
+                        "frameStart": obj.animationAction.frameStart,
+                        "frameEnd": obj.animationAction.frameEnd,
                         "groups": list(map(
                             lambda group: {
                                 "name": group.name,
