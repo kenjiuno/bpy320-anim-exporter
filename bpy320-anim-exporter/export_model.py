@@ -1,6 +1,8 @@
+from multiprocessing import dummy
 from typing import Iterable, List, Tuple
 import bpy
 import json
+import mathutils
 
 
 class HandleValue:
@@ -120,31 +122,53 @@ class BoneValue:
 
 
 def getBoneValues(pairs: List[Tuple]) -> Iterable[BoneValue]:
-    boneRefs = list(map(
+    # `bone000` is missing from bones. So we prepend dummy root.
+    dummyRoot = ("root", {})
+
+    boneRefs = [dummyRoot] + list(map(
         lambda it: it[1],
         pairs
     ))
 
-    def indexOfBone(it):
+    def indexOfBone(it, fallback: int) -> int:
         if it in boneRefs:
             return boneRefs.index(it)
         else:
-            return -1
+            return fallback
 
     def getBoneValue(pair: Tuple):
-        (translation, rotation, scale) = pair[1].matrix_local.decompose()
+        if pair is dummyRoot:
+            return BoneValue(
+                pair[0],
+                -1,
+                [0, 0, 0],
+                [1, 0, 0, 0],
+                [1, 1, 1]
+            )
 
-        return BoneValue(
-            pair[0],
-            indexOfBone(pair[1].parent),
-            list(translation),
-            list(rotation),
-            list(scale)
-        )
+        else:
+            if pair[1].parent:
+                parentMatrix = pair[1].parent.matrix_local.copy()
+                parentMatrix.invert()
+            else:
+                parentMatrix = mathutils.Matrix()
+
+            thisMatrix = pair[1].matrix_local
+            relativeMatrix = parentMatrix @ thisMatrix
+
+            (translation, rotation, scale) = relativeMatrix.decompose()
+
+            return BoneValue(
+                pair[0],
+                indexOfBone(pair[1].parent, 0),
+                list(translation),
+                list(rotation),
+                list(scale)
+            )
 
     return map(
         getBoneValue,
-        pairs
+        [dummyRoot] + pairs
     )
 
 
@@ -232,11 +256,10 @@ class AnimExporter:
 
 if False:
     print("running write_some_data...")
-    f = open("C:/A/A.json", 'w', encoding='utf-8')
-    f.write(
-        json.dumps(
-            AnimExporter().export(),
-            indent=1
+    with open("C:/A/A.json", 'w', encoding='utf-8') as f:
+        f.write(
+            json.dumps(
+                AnimExporter().export(),
+                indent=1
+            )
         )
-    )
-    f.close()
