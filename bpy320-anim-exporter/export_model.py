@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, List, Tuple
 import bpy
 import json
 
@@ -100,41 +100,128 @@ def allActions() -> Iterable[ActionRef]:
     return map(lambda it: ActionRef(it), bpy.data.actions.items())
 
 
+class BoneValue:
+    name: str
+    parent: int
+    translation: List[float]
+    rotation: List[float]
+    scale: List[float]
+
+    def __init__(self, name, parent, translation, rotation, scale):
+        self.name = name
+        self.parent = parent
+        self.translation = translation
+        self.rotation = rotation
+        self.scale = scale
+
+
+def getBoneValues(pairs: List[Tuple]) -> Iterable[BoneValue]:
+    boneRefs = list(map(
+        lambda it: it[1],
+        pairs
+    ))
+
+    def indexOfBone(it):
+        if it in boneRefs:
+            return boneRefs.index(it)
+        else:
+            return -1
+
+    def getBoneValue(pair: Tuple):
+        (translation, rotation, scale) = pair[1].matrix_local.decompose()
+
+        return BoneValue(
+            pair[0],
+            indexOfBone(pair[1].parent),
+            list(translation),
+            list(rotation),
+            list(scale)
+        )
+
+    return map(
+        getBoneValue,
+        pairs
+    )
+
+
+class RootObjectRef:
+    type: str
+    name: str
+    animationAction: ActionRef
+    bones: Iterable[BoneValue]
+
+    def __init__(self, pair):
+        self.name = pair[0]
+        self.type = pair[1].type
+
+        if self.type == 'ARMATURE':
+            self.animationAction = ActionRef((
+                pair[1].animation_data.action.name,
+                pair[1].animation_data.action,
+            ))
+            self.bones = getBoneValues(pair[1].data.bones.items())
+        else:
+            self.animationAction = None
+            self.bones = None
+
+
+def allObjects() -> Iterable[RootObjectRef]:
+    return map(
+        lambda it: RootObjectRef(it),
+        bpy.context.collection.all_objects.items()
+    )
+
+
 class AnimExporter:
     def export(self):
         return {
-            "actions": list(map(
-                lambda action: {
-                    "name": action.name,
-                    "groups": list(map(
-                        lambda group: {
-                            "name": group.name,
-                            "channels": list(map(
-                                lambda channel: {
-                                    "channelRef": channel.channelRef,
-                                    "keyFrames": list(map(
-                                        lambda keyFrame: {
-                                            "time": keyFrame.time,
-                                            "value": keyFrame.value,
-                                            "interpolation": keyFrame.interpolation,
-                                            "handleLeft": keyFrame.handleLeft.to_dict(),
-                                            "handleRight": keyFrame.handleRight.to_dict(),
-                                        },
-                                        channel.keyFrames
-                                    ))
-                                },
-                                group.channels
-                            ))
+            "version": "1",
+            "objects": list(map(
+                lambda obj: {
+                    "type": obj.type,
+                    "name": obj.name,
+                    "animationAction": ({
+                        "name": obj.animationAction.name,
+                        "groups": list(map(
+                            lambda group: {
+                                "name": group.name,
+                                "channels": list(map(
+                                    lambda channel: {
+                                        "channelRef": channel.channelRef,
+                                        "keyFrames": list(map(
+                                            lambda keyFrame: {
+                                                "time": keyFrame.time,
+                                                "value": keyFrame.value,
+                                                "interpolation": keyFrame.interpolation,
+                                                "handleLeft": keyFrame.handleLeft.to_dict(),
+                                                "handleRight": keyFrame.handleRight.to_dict(),
+                                            },
+                                            channel.keyFrames
+                                        ))
+                                    },
+                                    group.channels
+                                ))
+                            },
+                            obj.animationAction.groups
+                        ))
+                    }) if obj.animationAction else None,
+                    "bones": list(map(
+                        lambda bone: {
+                            "name": bone.name,
+                            "parent": bone.parent,
+                            "translation": bone.translation,
+                            "rotation": bone.rotation,
+                            "scale": bone.scale,
                         },
-                        action.groups
-                    ))
+                        obj.bones
+                    )) if obj.bones else None,
                 },
-                allActions()
+                allObjects()
             ))
         }
 
 
-if False:
+if True:
     print("running write_some_data...")
     f = open("C:/A/A.json", 'w', encoding='utf-8')
     f.write(
