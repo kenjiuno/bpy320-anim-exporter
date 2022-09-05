@@ -11,7 +11,7 @@ from . import export_model
 bl_info = {
     "name": "JSON: animation data used by OpenKh.Command.AnbMaker",
     "author": "kenjiuno",
-    "version": (0, 2, 0),
+    "version": (0, 3, 0),
     "blender": (3, 2, 0),
     "location": "File > Export > MMD Tools Panel",
     "description": "Animation JSON exporter plugin for OpenKh.Command.AnbMaker.",
